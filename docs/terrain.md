@@ -19,7 +19,7 @@ This document assumes a basic understanding of Rust's convention for numeric typ
 - `u32` is an unsigned 32-bit integer
 - `f32` is a 32-bit floating point number
 
-All numeric types are little endian. Floats are stored as a dividend of their type's numeric maximum; as such, a `f8` with a value of `0x31` translates to `0x31 / 0xFF`, or ~`0.192`. Floats are unsigned. Signed integers are stored with their absolute value, with preceding bytes containing the signedness information; meaning the range for an `i8` is `-0xFF` -> `0xFF`, instead of `-0x7F` to `0x7F`.
+All numeric types are little endian. Floats are stored as a dividend of their type's numeric maximum; as such, a `f8` with a value of `0x31` translates to `0x31 / 0xFF`, or `~0.192`. Floats are unsigned. Signed integers are stored with their absolute value, with preceding bytes containing the signedness information; meaning the range for an `i8` is `-0xFF` -> `0xFF`, instead of `-0x7F` to `0x7F`.
 
 Unless otherwise noted, all structs in this document are assumed to be stored with their components in the sequence listed without any modification. That is, if a struct is listed as being composed of an `i32` and an `f32`, it can be assumed that it is stored as an `i32` followed by an `f32`.
 
