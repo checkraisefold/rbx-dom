@@ -454,12 +454,12 @@ impl TerrainSerializer for Terrain {
                         ..65536 => {
                             let offset = axis_adjuster / 256;
                             adjusted_axes[1][key] += offset as u8;
-                            axis_adjuster -= axis_adjuster * offset;
+                            axis_adjuster -= offset * 256;
                         }
                         65536.. => {
                             let offset = axis_adjuster / 65536;
                             adjusted_axes[0][key] += offset as u8;
-                            axis_adjuster -= axis_adjuster * offset;
+                            axis_adjuster -= offset * 65536;
                         }
                     }
                 }
