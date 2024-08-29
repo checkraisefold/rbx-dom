@@ -27,7 +27,7 @@ Unless otherwise noted, all structs in this document are assumed to be stored wi
 
 The first two bytes of the blob are `0x01`, which is a magic number, followed by `0x05`, which is a logarithm base 2 of the chunk size in voxels. Currently, the chunk size is 32<sup>3</sup> (32768). Values other than `0x05` are untested.
 
-Immediately following the header is an array of chunks, each of which must have a full voxel count, which is currently 32<sup>3</sup>. Chunks are ascendingly ordered by X, then Y, then Z based on their position in the world. Each chunk represents a cube of 128<sup>3</sup> units in world space.
+Immediately following the header is an array of chunks, each of which must contain enough voxels to reach the maximum count (32<sup>3</sup>). Chunks are ascendingly ordered by X, then Y, then Z based on their position in the world. Each chunk represents a cube of 128<sup>3</sup> units in world space.
 
 | Field Name | Format          | Value                                                                 |
 | :--------- | :-------------- | :-------------------------------------------------------------------- |
