@@ -324,40 +324,41 @@ impl TerrainSerializer for Chunk {
             material: self.base_material,
         };
 
-        // Nested for loop equivalent. Y -> Z -> X.
         let mut pos_cursor = VoxelCoordinates::default();
         let mut run_length_cursor = (0u16, &base_voxel);
-        for (y, z, x) in
-            (0..32).flat_map(|y| (0..32).flat_map(move |z| (0..32).map(move |x| (y, z, x))))
-        {
+        for y in 0..32 {
             pos_cursor.0.y = y;
-            pos_cursor.0.z = z;
-            pos_cursor.0.x = x;
+            for z in 0..32 {
+                pos_cursor.0.z = z;
+                for x in 0..32 {
+                    pos_cursor.0.x = x;
 
-            let grabbed_voxel = match self.grid.get(&pos_cursor) {
-                Some(v) => v,
-                _ => &base_voxel,
-            };
+                    let grabbed_voxel = match self.grid.get(&pos_cursor) {
+                        Some(v) => v,
+                        _ => &base_voxel,
+                    };
 
-            if run_length_cursor.0 == 0 {
-                // We don't add 1 here, next if statement does it.
-                run_length_cursor.1 = grabbed_voxel;
-            }
-            if grabbed_voxel == run_length_cursor.1 {
-                if run_length_cursor.0 < 0xFF {
-                    run_length_cursor.0 += 1;
-                    continue;
-                } else {
-                    // Properly reset the run-length if we hit the max.
-                    data.extend(grabbed_voxel.encode_run_length(run_length_cursor.0 + 1));
-                    run_length_cursor.0 = 0;
-                    continue;
+                    if run_length_cursor.0 == 0 {
+                        // We don't add 1 here, next if statement does it.
+                        run_length_cursor.1 = grabbed_voxel;
+                    }
+                    if grabbed_voxel == run_length_cursor.1 {
+                        if run_length_cursor.0 < 0xFF {
+                            run_length_cursor.0 += 1;
+                            continue;
+                        } else {
+                            // Properly reset the run-length if we hit the max.
+                            data.extend(grabbed_voxel.encode_run_length(run_length_cursor.0 + 1));
+                            run_length_cursor.0 = 0;
+                            continue;
+                        }
+                    }
+
+                    data.extend(run_length_cursor.1.encode_run_length(run_length_cursor.0));
+                    run_length_cursor.0 = 1;
+                    run_length_cursor.1 = grabbed_voxel;
                 }
             }
-
-            data.extend(run_length_cursor.1.encode_run_length(run_length_cursor.0));
-            run_length_cursor.0 = 1;
-            run_length_cursor.1 = grabbed_voxel;
         }
 
         // We'll have a bit of leftovers after that loop.
