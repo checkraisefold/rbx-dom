@@ -79,10 +79,12 @@ impl ChunkCoordinates {
     /// Constructs a new `ChunkCoordinates` object.
     #[inline]
     pub fn new(x: i32, y: i32, z: i32) -> Self {
+        // Terrain isn't accepted by the engine with voxels past 2^23.
+        const CHUNK_MAX: i32 = 2i32.pow(23) / CHUNK_SIZE;
         let (x, y, z) = (
-            x.clamp(-262144, 262144),
-            y.clamp(-262144, 262144),
-            z.clamp(-262144, 262144),
+            x.clamp(-CHUNK_MAX, CHUNK_MAX),
+            y.clamp(-CHUNK_MAX, CHUNK_MAX),
+            z.clamp(-CHUNK_MAX, CHUNK_MAX),
         );
         Self(TerrainVec::new(x, y, z))
     }
