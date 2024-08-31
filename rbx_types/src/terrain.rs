@@ -431,12 +431,12 @@ impl TerrainSerializer for Terrain {
             let mut adjusted_axes = [[0x00, 0x00, 0x00], [0x00, 0x00, 0x00], [0x00, 0x00, 0x00]];
             for (key, axis) in axes.iter().enumerate() {
                 if *axis < 0 {
-                    negative_axes[key] = 0xFF as u8;
+                    negative_axes[key] = 0xFF;
                 }
 
                 let axis_filler = match axis.abs() {
                     ..256 => 3,
-                    ..65536 => 2,
+                    256..65536 => 2,
                     65536.. => 1,
                 };
                 if axis_filler < negative_padding {
@@ -451,7 +451,7 @@ impl TerrainSerializer for Terrain {
                             adjusted_axes[2][key] = axis_adjuster as u8;
                             axis_adjuster -= axis_adjuster;
                         }
-                        ..65536 => {
+                        256..65536 => {
                             let offset = axis_adjuster / 256;
                             adjusted_axes[1][key] += offset as u8;
                             axis_adjuster -= offset * 256;
@@ -493,7 +493,7 @@ mod test {
         let mut voxel = Voxel::new_with_water(Material::Air, 1.0, 0.5);
         for m in 2..=22 {
             voxel.material = Material::try_from(m as u8).unwrap();
-            chunk.write_voxel(&VoxelCoordinates::new(0 + (m - 2), 0, 0), voxel);
+            chunk.write_voxel(&VoxelCoordinates::new(m - 2, 0, 0), voxel);
         }
         terr.write_chunk(&ChunkCoordinates::default(), chunk.clone());
         terr.write_chunk(&ChunkCoordinates::new(1, 0, 0), chunk.clone());
