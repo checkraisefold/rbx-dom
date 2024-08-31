@@ -81,12 +81,12 @@ Water occupancy is dynamically set based on the `Store Count` flag and the store
 
 If the solid occupancy of a voxel is `1.0` and the set material is not `Air`, the water occupancy must always be `0.0` if it's set. If the water occupancy of a voxel is `1.0` and the solid occupancy is `0.0`, the voxel should be stored like a solid voxel with its material set to `Water`, with no `Water Occupancy` being written.
 
-| Field Name      | Format                    | Value                                                                                                                  |
-| :-------------- | :------------------------ | :--------------------------------------------------------------------------------------------------------------------- |
-| Flag            | [Voxel.Flag](#voxel.flag) | Contains the material of this voxel, along with other bitflags.                                                        |
-| Solid Occupancy | `f8`                      | Represents how full of a solid material the voxel is between 0-100%. Only stored if the `Store Occupancy` flag is set. |
-| Count           | `u8`                      | Run-length count. Only stored if the `Store Count` flag is set.                                                        |
-| Water Occupancy | `f8`                      | Represents how full of Water the voxel is between 0-100%. Only stored based on the conditions described above.         |
+| Field Name                    | Format                    | Value                                                                                                                  |
+| :---------------------------- | :------------------------ | :--------------------------------------------------------------------------------------------------------------------- |
+| Flag                          | [Voxel.Flag](#voxel.flag) | Contains the material of this voxel, along with other bitflags.                                                        |
+| Solid Occupancy               | `f8`                      | Represents how full of a solid material the voxel is between 0-100%. Only stored if the `Store Occupancy` flag is set. |
+| Count                         | `u8`                      | Run-length count. Only stored if the `Store Count` flag is set.                                                        |
+| [Water Occupancy][Shorelines] | `f8`                      | Represents how full of Water the voxel is between 0-100%. Only stored based on the conditions described above.         |
 
 [run-length encoding]: https://en.wikipedia.org/wiki/Run-length_encoding
 [Terrain.WriteVoxelChannels]: https://create.roblox.com/docs/reference/engine/classes/Terrain#WriteVoxelChannels
