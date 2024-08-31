@@ -79,7 +79,7 @@ Voxels are stored within a chunk using [run-length encoding]. A count of `1` wou
 
 Water occupancy is dynamically set based on the `Store Count` flag and the stored `Count` value. If `Store Count` is enabled and `Count` is `0x00`, then the `Water Occupancy` is written.
 
-If the solid occupancy of a voxel is `1.0` and the set material is not `Air`, the water occupancy must always be `0.0` if it's set. If the water occupancy of a voxel is `1.0` and the solid occupancy is `0.0`, the voxel should be stored like a solid voxel with its material set to Water, with no `Water Occupancy` being written.
+If the solid occupancy of a voxel is `1.0` and the set material is not `Air`, the water occupancy must always be `0.0` if it's set. If the water occupancy of a voxel is `1.0` and the solid occupancy is `0.0`, the voxel should be stored like a solid voxel with its material set to `Water`, with no `Water Occupancy` being written.
 
 | Field Name      | Format                    | Value                                                                                                                  |
 | :-------------- | :------------------------ | :--------------------------------------------------------------------------------------------------------------------- |
