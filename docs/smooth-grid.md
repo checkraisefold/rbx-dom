@@ -54,7 +54,7 @@ The actual offset is the sum of the three offset vectors, multiplied by their re
 3. Offset (256): Subtract 65,536 from 65,797. Divide and floor 261 by 256. `(0x01, 0x00, 0x00)`
 4. Offset (1): Subtract 256 from 261. `(0x05, 0x00, 0x00)`
 
-For example, given two chunks, one at a position of `(2, 0, 0)` and another at a position of `(4, 0, -1)` in chunk space, the latter's offset would be stored as follows:
+As an example for signedness, given two chunks, one at a position of `(2, 0, 0)` and another at a position of `(4, 0, -1)` in chunk space, the latter's offset would be stored as follows:
 
 1. Signedness: `(0x00, 0x00, 0xFF)`
 2. Offset (65536): `(0x00, 0x00, 0xFF)`
