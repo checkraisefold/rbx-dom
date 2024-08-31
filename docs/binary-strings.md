@@ -77,6 +77,6 @@ As an example, an `Instance` that had the tags `Hello`, `from`, and `Rojo` would
 ### SmoothGrid
 **Used By:** `Terrain.SmoothGrid`
 
-This blob is used to serialize [`Terrain`][Terrain] voxel data. Due to the complexity of the format, a specification is located [here](terrain.md).
+This blob is used to serialize [`Terrain`][Terrain] voxel data. Due to the complexity of the format, a specification is located [here](smooth-grid.md).
 
 [Terrain]: https://create.roblox.com/docs/reference/engine/classes/Terrain
