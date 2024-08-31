@@ -6,6 +6,9 @@ use std::{
 
 use crate::Vector3;
 
+/// Size of a chunk. Chunks are cubes, so this is the length/width/height.
+const CHUNK_SIZE: i32 = 2i32.pow(5);
+
 /// Coordinates of a chunk or a voxel. For internal use.
 // Can't use Vector3int16; we need a 32 bit integer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, PartialOrd, Ord, Hash)]
@@ -45,7 +48,12 @@ impl VoxelCoordinates {
     /// Constructs a new `VoxelCoordinates` object.
     #[inline]
     pub fn new(x: i32, y: i32, z: i32) -> Self {
-        let (x, y, z) = (x.clamp(0, 31), y.clamp(0, 31), z.clamp(0, 31));
+        const VOXEL_MAX: i32 = CHUNK_SIZE - 1;
+        let (x, y, z) = (
+            x.clamp(0, VOXEL_MAX),
+            y.clamp(0, VOXEL_MAX),
+            z.clamp(0, VOXEL_MAX),
+        );
         Self(TerrainVec::new(x, y, z))
     }
 
@@ -173,7 +181,7 @@ pub trait TerrainSerializer {
 pub struct Voxel {
     solid_occupancy: f32,
     water_occupancy: f32,
-    pub material: Material,
+    material: Material,
 }
 
 impl Voxel {
@@ -211,6 +219,12 @@ impl Voxel {
     }
 
     fn encode_run_length(&self, count: u16) -> Vec<u8> {
+        assert!(
+            (1..=256).contains(&count),
+            "Invalid voxel RLE count: {}",
+            count
+        );
+
         let (solid_occupancy, water_occupancy) = self.get_encode_data();
         let mut flag = self.material as u8;
         let mut to_write: Vec<u8> = vec![];
@@ -251,14 +265,40 @@ impl Voxel {
     /// new Shorelines feature. Occupancy values are between `0.0` and `1.0`,
     /// as a percentage of the voxel.
     pub fn set_occupancy(&mut self, solid_occupancy: f32, water_occupancy: f32) {
-        self.solid_occupancy = solid_occupancy.clamp(0.0, 1.0);
+        let solid_occupancy = solid_occupancy.clamp(0.0, 1.0);
+        let water_occupancy = water_occupancy.clamp(0.0, 1.0);
+
+        // If we have nothing in there, it should just be air.
+        if solid_occupancy == 0.0 && water_occupancy == 0.0 {
+            self.solid_occupancy = 1.0;
+            self.water_occupancy = 0.0;
+            self.material = Material::Air;
+            return;
+        }
+
+        // We should encode water as a normal, non-shorelines voxel if there's no solids.
+        if (solid_occupancy == 0.0 || self.material == Material::Air) && water_occupancy > 0.0 {
+            self.solid_occupancy = water_occupancy;
+            self.water_occupancy = 0.0;
+            self.material = Material::Water;
+            return;
+        }
+
+        self.solid_occupancy = solid_occupancy;
 
         // Full with a solid (non-air) material? We can't have any water.
-        if self.material != Material::Air && solid_occupancy == 1.0 && water_occupancy > 0.0 {
+        if solid_occupancy == 1.0 && water_occupancy > 0.0 {
             self.water_occupancy = 0.0
         } else {
-            self.water_occupancy = water_occupancy.clamp(0.0, 1.0);
+            self.water_occupancy = water_occupancy;
         }
+    }
+
+    pub fn set_material(&mut self, material: Material) {
+        self.material = material;
+
+        // Occupancy determination depends on material.
+        self.set_occupancy(self.solid_occupancy, self.water_occupancy)
     }
 }
 
@@ -326,11 +366,11 @@ impl TerrainSerializer for Chunk {
 
         let mut pos_cursor = VoxelCoordinates::default();
         let mut run_length_cursor = (0u16, &base_voxel);
-        for y in 0..32 {
+        for y in 0..CHUNK_SIZE {
             pos_cursor.0.y = y;
-            for z in 0..32 {
+            for z in 0..CHUNK_SIZE {
                 pos_cursor.0.z = z;
-                for x in 0..32 {
+                for x in 0..CHUNK_SIZE {
                     pos_cursor.0.x = x;
 
                     let grabbed_voxel = match self.grid.get(&pos_cursor) {
@@ -361,8 +401,10 @@ impl TerrainSerializer for Chunk {
             }
         }
 
-        // We'll have a bit of leftovers after that loop.
-        data.extend(run_length_cursor.1.encode_run_length(run_length_cursor.0));
+        // We might have a bit of leftovers after that loop.
+        if run_length_cursor.0 > 0 {
+            data.extend(run_length_cursor.1.encode_run_length(run_length_cursor.0));
+        }
         data
     }
 }
@@ -412,7 +454,7 @@ impl Terrain {
 impl TerrainSerializer for Terrain {
     fn encode(&self) -> Vec<u8> {
         let mut data = Vec::<u8>::with_capacity(self.world.len() * 512);
-        data.extend([0x01, 0x05]);
+        data.extend([0x01, CHUNK_SIZE.ilog2() as u8]);
 
         let mut chunk_cursor: Option<&ChunkCoordinates> = None;
         for (position, chunk) in self.world.iter() {
@@ -489,10 +531,10 @@ mod test {
     #[test]
     fn encode_default() {
         let mut terr = Terrain::new();
-        let mut chunk = Chunk::new();
-        let mut voxel = Voxel::new_with_water(Material::Air, 1.0, 0.5);
+        let mut chunk = Chunk::new_with_base(Material::Air);
+        let mut voxel = Voxel::new_with_water(Material::Grass, 1.0, 0.5);
         for m in 2..=22 {
-            voxel.material = Material::try_from(m as u8).unwrap();
+            voxel.set_material(Material::try_from(m as u8).unwrap());
             chunk.write_voxel(&VoxelCoordinates::new(m - 2, 0, 0), voxel);
         }
         terr.write_chunk(&ChunkCoordinates::default(), chunk.clone());

@@ -25,7 +25,9 @@ Unless otherwise noted, all structs in this document are assumed to be stored wi
 
 ## File Structure
 
-The first two bytes of the blob are `0x01`, which is a magic number, followed by `0x05`, which is a logarithm base 2 of the chunk size in voxels. Currently, the chunk size is 32<sup>3</sup> (32768). Values other than `0x05` are untested.
+The first two bytes of the blob are `0x01`, which is a magic number, followed by `0x05`, which is a logarithm base 2 of the chunk size in voxels. The default chunk size is 32<sup>3</sup> (32768).
+
+Size values other than `0x05` are normally not achievable with Studio or other tools, but values between `0x00` (inclusive) and `0x08` (inclusive) can still be deserialized by the engine, giving a theoretical range of possible chunk sizes between 1<sup>3</sup> and 256<sup>3</sup>. However, the engine splits chunks larger than 32<sup>3</sup> back into the default chunk size. Any size value other than `0x05` has poorly tested and undefined behavior.
 
 Immediately following the header is an array of chunks, each of which must contain enough voxels to reach the maximum count (32<sup>3</sup>). Chunks are ascendingly ordered by X, then Y, then Z based on their position in the world. Each chunk represents a cube of 128<sup>3</sup> units in world space.
 
@@ -58,6 +60,8 @@ For example, given two chunks, one at a position of `(2, 0, 0)` and another at a
 2. Offset (65536): `(0x00, 0x00, 0xFF)`
 3. Offset (256): `(0x00, 0x00, 0xFF)`
 4. Offset (1): `(0x02, 0x00, 0x01)`
+
+Chunks have a maximum world position in chunk space of 262,144 on each axis. After this point, voxels are located in a region (above 2<sup>23</sup> in world space) where floating point precision devolves to `1.0`, and the engine refuses to load a blob that contains chunks beyond this point.
 
 | Field Name     | Format               | Value                                                                               |
 | :------------- | :------------------- | :---------------------------------------------------------------------------------- |
