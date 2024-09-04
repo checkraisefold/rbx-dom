@@ -25,9 +25,9 @@ Unless otherwise noted, all structs in this document are assumed to be stored wi
 
 ## File Structure
 
-The first two bytes of the blob are `0x01`, which is a magic number, followed by `0x05`, which is a logarithm base 2 of the chunk size in voxels. The default chunk size is 32<sup>3</sup> (32768).
+The first two bytes of the blob are `0x01`, which is a magic number, followed by `0x05`, which is a logarithm base 2 of the chunk size in voxels. The default chunk size is 32<sup>3</sup> (32768). The amount of voxels in a chunk can be described as <code>(2<sup>Chunk Size</sup>)<sup>3</sup></code>.
 
-Size values other than `0x05` are normally not achievable with Studio or other tools, but values between `0x00` (inclusive) and `0x08` (inclusive) can still be deserialized by the engine, giving a theoretical range of possible chunk sizes between 1<sup>3</sup> and 256<sup>3</sup>. However, the engine splits chunks differeing in size from 32<sup>3</sup> back into the default chunk size. Any size value other than `0x05` has poorly tested and undefined behavior.
+Size values other than `0x05` are normally not achievable with Studio or other tools, but values between `0x00` (inclusive) and `0x08` (inclusive) can still be deserialized by the engine, giving a theoretical range of possible chunk sizes between 1<sup>3</sup> and 256<sup>3</sup>. However, the engine splits chunks differing in size from 32<sup>3</sup> back into the default chunk size. Any size value other than `0x05` has poorly tested and undefined behavior.
 
 Immediately following the header is an array of chunks, each of which must contain enough voxels to reach the maximum count (32<sup>3</sup>). Chunks are ascendingly ordered by X, then Y, then Z based on their position in the world. Each chunk represents a cube of 128<sup>3</sup> units in world space.
 
@@ -43,7 +43,7 @@ Terrain data is represented using a variety of different data types. Data descri
 
 ### Chunk
 
-The `Chunk` type is stored with a dynamic size dependent on the size of the voxels contained within, and the end of its data is marked by reaching its maximum voxel count of 32<sup>3</sup>. Voxels are ascendingly ordered by Y, then Z, then X based on their position in the chunk. Voxels are stored in rows of 32 units on each axis, each representing 4 units in world space.
+The `Chunk` type is stored with a dynamic size dependent on the size of the voxels contained within, and the end of its data is marked by reaching its maximum voxel count dependent on chunk size. Voxels are ascendingly ordered by Y, then Z, then X based on their position in the chunk. Voxels are stored in rows of 32 units on each axis, each representing 4 units in world space.
 
 Voxel data is preceded by the offset between this chunk and the last in the blob, or from `0, 0, 0` if this is the first chunk in the blob. This offset is stored using 3 vectors of `(x: u8, y: u8, z: u8)`, with 0xFF values in _all_ unused offsets (and the `Signedness` value) indicating a negative sign. Using the sign information from the prior vectors, the range of an axis is `-0xFF` to `0xFF`, unlike conventional signed integers. All coordinates are in chunk space (increments of 1 chunk), not world space.
 
