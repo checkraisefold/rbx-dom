@@ -9,7 +9,7 @@ use crate::{
 
 pub const XML_TAG_NAME: &str = "BinaryString";
 
-pub fn write_terrain<W: Write>(
+pub fn write_smooth_grid<W: Write>(
     writer: &mut XmlEventWriter<W>,
     property_name: &str,
     value: &SmoothGrid,
