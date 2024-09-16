@@ -17,8 +17,8 @@ mod physical_properties;
 mod referent;
 mod security_capabilities;
 mod shared_string;
+mod smooth_grid;
 mod tags;
-mod terrain;
 mod unique_id;
 mod variant;
 
@@ -36,7 +36,7 @@ pub use physical_properties::*;
 pub use referent::*;
 pub use security_capabilities::*;
 pub use shared_string::*;
+pub use smooth_grid::*;
 pub use tags::*;
-pub use terrain::*;
 pub use unique_id::*;
 pub use variant::*;

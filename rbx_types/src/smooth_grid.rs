@@ -1,10 +1,13 @@
 use std::{
     collections::{BTreeMap, HashMap},
     convert::TryFrom,
-    fmt,
 };
 
+use thiserror::Error;
+
 use crate::Vector3;
+
+use crate::Error as CrateError;
 
 /// Size of a chunk. Chunks are cubes, so this is the length/width/height.
 const CHUNK_SIZE: i32 = 2i32.pow(5);
@@ -49,12 +52,11 @@ impl VoxelCoordinates {
     #[inline]
     pub fn new(x: i32, y: i32, z: i32) -> Self {
         const VOXEL_MAX: i32 = CHUNK_SIZE - 1;
-        let (x, y, z) = (
+        Self(TerrainVec::new(
             x.clamp(0, VOXEL_MAX),
             y.clamp(0, VOXEL_MAX),
             z.clamp(0, VOXEL_MAX),
-        );
-        Self(TerrainVec::new(x, y, z))
+        ))
     }
 
     /// Constructs a new `VoxelCoordinates` object from a Vector3.
@@ -81,12 +83,11 @@ impl ChunkCoordinates {
     pub fn new(x: i32, y: i32, z: i32) -> Self {
         // Terrain isn't accepted by the engine with voxels past 2^23.
         const CHUNK_MAX: i32 = 2i32.pow(23) / CHUNK_SIZE;
-        let (x, y, z) = (
+        Self(TerrainVec::new(
             x.clamp(-CHUNK_MAX, CHUNK_MAX),
             y.clamp(-CHUNK_MAX, CHUNK_MAX),
             z.clamp(-CHUNK_MAX, CHUNK_MAX),
-        );
-        Self(TerrainVec::new(x, y, z))
+        ))
     }
 
     /// Constructs a new `ChunkCoordinates` object from a Vector3.
@@ -127,7 +128,7 @@ pub enum Material {
 }
 
 impl TryFrom<u8> for Material {
-    type Error = InvalidMaterialError;
+    type Error = CrateError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         use Material::*;
@@ -156,25 +157,18 @@ impl TryFrom<u8> for Material {
             0x14 => Salt,
             0x15 => Limestone,
             0x16 => Pavement,
-            _ => return Err(InvalidMaterialError(value)),
+            _ => return Err(SmoothGridError::UnknownMaterial(value).into()),
         })
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidMaterialError(u8);
-
-impl std::error::Error for InvalidMaterialError {}
-
-impl fmt::Display for InvalidMaterialError {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "Invalid binary material value {:x?}", self.0)
-    }
-}
-
-pub trait TerrainSerializer {
-    fn encode(&self) -> Vec<u8>;
-    //fn decode(&self) -> Self;
+/// An error that can occur when deserializing or working with SmoothGrid.
+#[derive(Debug, Error)]
+pub(crate) enum SmoothGridError {
+    /// The argument provided to `try_from<u8>` did not correspond to a known
+    /// Material.
+    #[error("cannot convert `{0}` into Material")]
+    UnknownMaterial(u8),
 }
 
 /// A container for a voxel of terrain, used in the `Chunk` object.
@@ -201,8 +195,8 @@ impl Voxel {
     }
 
     /// Constructs a new `Voxel` with a material, solid occupancy, and water
-    /// occupancy percentage. Takes advantage of the recently-released
-    /// Shorelines feature. Equivalent to data writeable from Roblox's `Terrain:WriteVoxelChannels`.
+    /// occupancy percentage.
+    /// Equivalent to data writeable from Roblox's `Terrain:WriteVoxelChannels`.
     /// Occupancy values are between `0.0` and `1.0`, as a percentage of the voxel.
     pub fn new_with_water(material: Material, solid_occupancy: f32, water_occupancy: f32) -> Self {
         let mut voxel = Self {
@@ -215,9 +209,10 @@ impl Voxel {
     }
 
     fn get_encode_data(&self) -> (u8, u8) {
-        let solid_occupancy: u8 = (self.solid_occupancy * 255.0) as u8;
-        let water_occupancy: u8 = (self.water_occupancy * 255.0) as u8;
-        (solid_occupancy, water_occupancy)
+        (
+            (self.solid_occupancy * 255.0) as u8,
+            (self.water_occupancy * 255.0) as u8,
+        )
     }
 
     fn encode_run_length(&self, count: u16) -> Vec<u8> {
@@ -229,7 +224,9 @@ impl Voxel {
 
         let (solid_occupancy, water_occupancy) = self.get_encode_data();
         let mut flag = self.material as u8;
-        let mut to_write: Vec<u8> = vec![];
+
+        // The first value is a placeholder that'll be replaced with the `flag` later
+        let mut to_write: Vec<u8> = vec![0x00];
 
         if solid_occupancy != 0xFF && solid_occupancy != 0x00 {
             // Should we store the solid occupancy value?
@@ -246,25 +243,25 @@ impl Voxel {
                 to_write.push(water_occupancy);
             }
         }
-        to_write.insert(0, flag);
+        to_write[0] = flag;
 
         if water_occupancy != 0x00 && count > 1 {
             /* Shorelines uses a new water occupancy value in the voxel data. Because of this,
             Roblox uses a hack to avoid having to reduce their 6 bits of material ID freedom
             by writing voxels with a count bit set to 1 and no count. This means we have to write
             all voxels in the run length manually. */
+            let len = to_write.len();
             return to_write
-                .iter()
+                .into_iter()
                 .cycle()
-                .copied()
-                .take(to_write.len() * count as usize)
+                .take(len * count as usize)
                 .collect();
         }
         to_write
     }
 
     /// Sets occupancy data for a `Voxel`. Water occupancy is from the
-    /// new Shorelines feature. Occupancy values are between `0.0` and `1.0`,
+    /// Shorelines feature. Occupancy values are between `0.0` and `1.0`,
     /// as a percentage of the voxel.
     pub fn set_occupancy(&mut self, solid_occupancy: f32, water_occupancy: f32) {
         let solid_occupancy = solid_occupancy.clamp(0.0, 1.0);
@@ -289,7 +286,7 @@ impl Voxel {
         self.solid_occupancy = solid_occupancy;
 
         // Full with a solid (non-air) material? We can't have any water.
-        if solid_occupancy == 1.0 && water_occupancy > 0.0 {
+        if solid_occupancy == 1.0 {
             self.water_occupancy = 0.0
         } else {
             self.water_occupancy = water_occupancy;
@@ -304,7 +301,6 @@ impl Voxel {
     }
 }
 
-// We don't iterate over the grid, so we can use a HashMap instead of BTreeMap to save performance.
 /// A container for a chunk of terrain, used in the `Terrain` object.
 #[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -353,21 +349,20 @@ impl Chunk {
     pub fn write_voxel(&mut self, position: &VoxelCoordinates, voxel: Voxel) {
         self.grid.insert(*position, voxel);
     }
-}
 
-impl TerrainSerializer for Chunk {
     fn encode(&self) -> Vec<u8> {
         // ~256 bytes if all voxels are air/base mat with maximum count. Double it
-        let mut data = Vec::<u8>::with_capacity(512);
+        let mut data = Vec::with_capacity(512);
 
-        let base_voxel: Voxel = Voxel {
+        let base_voxel = Voxel {
             solid_occupancy: 1.0,
             water_occupancy: 0.0,
             material: self.base_material,
         };
 
         let mut pos_cursor = VoxelCoordinates::default();
-        let mut run_length_cursor = (0u16, &base_voxel);
+        let mut run_length_cursor = 0u16;
+        let mut run_length_voxel = &base_voxel;
         for y in 0..CHUNK_SIZE {
             pos_cursor.0.y = y;
             for z in 0..CHUNK_SIZE {
@@ -380,32 +375,32 @@ impl TerrainSerializer for Chunk {
                         _ => &base_voxel,
                     };
 
-                    if run_length_cursor.0 == 0 {
+                    if run_length_cursor == 0 {
                         // We don't add 1 here, next if statement does it.
-                        run_length_cursor.1 = grabbed_voxel;
+                        run_length_voxel = grabbed_voxel;
                     }
-                    if grabbed_voxel == run_length_cursor.1 {
-                        if run_length_cursor.0 < 0xFF {
-                            run_length_cursor.0 += 1;
+                    if grabbed_voxel == run_length_voxel {
+                        if run_length_cursor < 0xFF {
+                            run_length_cursor += 1;
                             continue;
                         } else {
                             // Properly reset the run-length if we hit the max.
-                            data.extend(grabbed_voxel.encode_run_length(run_length_cursor.0 + 1));
-                            run_length_cursor.0 = 0;
+                            data.extend(grabbed_voxel.encode_run_length(run_length_cursor + 1));
+                            run_length_cursor = 0;
                             continue;
                         }
                     }
 
-                    data.extend(run_length_cursor.1.encode_run_length(run_length_cursor.0));
-                    run_length_cursor.0 = 1;
-                    run_length_cursor.1 = grabbed_voxel;
+                    data.extend(run_length_voxel.encode_run_length(run_length_cursor));
+                    run_length_cursor = 1;
+                    run_length_voxel = grabbed_voxel;
                 }
             }
         }
 
         // We might have a bit of leftovers after that loop.
-        if run_length_cursor.0 > 0 {
-            data.extend(run_length_cursor.1.encode_run_length(run_length_cursor.0));
+        if run_length_cursor > 0 {
+            data.extend(run_length_voxel.encode_run_length(run_length_cursor));
         }
         data
     }
@@ -419,11 +414,11 @@ impl TerrainSerializer for Chunk {
     derive(serde::Serialize, serde::Deserialize),
     serde(transparent)
 )]
-pub struct Terrain {
+pub struct SmoothGrid {
     world: BTreeMap<ChunkCoordinates, Chunk>,
 }
 
-impl Terrain {
+impl SmoothGrid {
     /// Constructs a new `Terrain` with no chunks.
     #[inline]
     pub fn new() -> Self {
@@ -451,15 +446,13 @@ impl Terrain {
     pub fn write_chunk(&mut self, position: &ChunkCoordinates, chunk: Chunk) {
         self.world.insert(*position, chunk);
     }
-}
 
-impl TerrainSerializer for Terrain {
-    fn encode(&self) -> Vec<u8> {
-        let mut data = Vec::<u8>::with_capacity(self.world.len() * 512);
+    pub fn encode(&self) -> Vec<u8> {
+        let mut data = Vec::with_capacity(self.world.len() * 512);
         data.extend([0x01, CHUNK_SIZE.ilog2() as u8]);
 
-        let mut chunk_cursor: Option<&ChunkCoordinates> = None;
-        for (position, chunk) in self.world.iter() {
+        let mut chunk_cursor = None;
+        for (position, chunk) in &self.world {
             let cursor = match chunk_cursor {
                 None => position,
                 Some(c) => c,
@@ -532,7 +525,7 @@ mod test {
 
     #[test]
     fn encode_default() {
-        let mut terr = Terrain::new();
+        let mut terr = SmoothGrid::new();
         let mut chunk = Chunk::new_with_base(Material::Air);
         let mut voxel = Voxel::new_with_water(Material::Grass, 1.0, 0.5);
         for m in 2..=22 {

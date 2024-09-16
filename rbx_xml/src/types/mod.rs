@@ -119,7 +119,7 @@ macro_rules! declare_rbx_types {
                 Variant::Tags(value) => write_tags(writer, xml_property_name, value),
                 Variant::Attributes(value) => write_attributes(writer, xml_property_name, value),
                 Variant::MaterialColors(value) => write_material_colors(writer, xml_property_name, value),
-                Variant::Terrain(value) => write_terrain(writer, xml_property_name, value),
+                Variant::SmoothGrid(value) => write_terrain(writer, xml_property_name, value),
 
                 unknown => {
                     Err(writer.error(EncodeErrorKind::UnsupportedPropertyType(unknown.ty())))
