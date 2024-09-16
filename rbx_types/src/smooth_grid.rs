@@ -23,6 +23,7 @@ pub struct TerrainVec {
 }
 
 impl TerrainVec {
+    /// Naively converts the components to be `i32`. This will always round down due to truncation.
     pub fn from_vec3(i: Vector3) -> Self {
         Self {
             x: i.x as i32,
