@@ -371,10 +371,7 @@ impl Chunk {
                 for x in 0..CHUNK_SIZE {
                     pos_cursor.0.x = x;
 
-                    let grabbed_voxel = match self.grid.get(&pos_cursor) {
-                        Some(v) => v,
-                        _ => &base_voxel,
-                    };
+                    let grabbed_voxel = self.grid.get(&pos_cursor).unwrap_or(&base_voxel);
 
                     if run_length_cursor == 0 {
                         // We don't add 1 here, next if statement does it.
@@ -454,10 +451,7 @@ impl SmoothGrid {
 
         let mut chunk_cursor = None;
         for (position, chunk) in &self.world {
-            let cursor = match chunk_cursor {
-                None => position,
-                Some(c) => c,
-            };
+            let cursor = chunk_cursor.unwrap_or(position);
             let axes = [
                 position.0.x - cursor.0.x,
                 position.0.y - cursor.0.y,
