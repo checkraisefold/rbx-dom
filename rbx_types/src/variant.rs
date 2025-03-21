@@ -129,8 +129,9 @@ make_variant! {
     UniqueId(UniqueId),
     MaterialColors(MaterialColors),
     SecurityCapabilities(SecurityCapabilities),
+    EnumItem(EnumItem),
     Content(Content),
-    Terrain(Terrain),
+    SmoothGrid(SmoothGrid),
 }
 
 impl From<&'_ str> for Variant {

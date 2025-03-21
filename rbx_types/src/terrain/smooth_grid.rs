@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     convert::TryFrom,
+    io::{self, Read},
 };
 
 use thiserror::Error;
@@ -9,7 +10,7 @@ use crate::Vector3;
 
 use crate::Error as CrateError;
 
-use super::TerrainMaterials;
+use super::{read_interleaved_i32_array, write_interleaved_i32_array, TerrainMaterials};
 
 /// Size of a chunk. Chunks are cubes, so this is the length/width/height.
 const CHUNK_SIZE: i32 = 2i32.pow(5);
@@ -204,6 +205,15 @@ pub(crate) enum SmoothGridError {
     /// TerrainGridMaterial.
     #[error("cannot convert `{0}` into TerrainGridMaterial")]
     UnknownMaterial(u8),
+
+    #[error("expected file header with version 1 and size 5, received version {0} and size {1}")]
+    InvalidHeader(u8, u8),
+
+    #[error(transparent)]
+    Io {
+        #[from]
+        source: io::Error,
+    },
 }
 
 /// A container for a voxel of terrain, used in the `Chunk` object.
@@ -213,6 +223,13 @@ pub struct Voxel {
     solid_occupancy: f32,
     water_occupancy: f32,
     material: TerrainGridMaterial,
+}
+
+bitflags::bitflags! {
+    struct VoxelFlags: u8 {
+        const HAS_OCCUPANCY = 0b01000000;
+        const HAS_COUNT = 0b10000000;
+    }
 }
 
 impl Voxel {
@@ -269,12 +286,12 @@ impl Voxel {
 
         if solid_occupancy != 0xFF && solid_occupancy != 0x00 {
             // Should we store the solid occupancy value?
-            flag |= 0b01000000;
+            flag |= VoxelFlags::HAS_OCCUPANCY.bits();
             to_write.push(solid_occupancy);
         }
         if count > 1 || water_occupancy != 0 {
             // Should we store the count (amount of voxels this run length) value?
-            flag |= 0b10000000;
+            flag |= VoxelFlags::HAS_COUNT.bits();
             if water_occupancy == 0 {
                 to_write.push((count - 1) as u8);
             } else {
@@ -285,10 +302,10 @@ impl Voxel {
         to_write[0] = flag;
 
         if water_occupancy != 0x00 && count > 1 {
-            /* Shorelines uses a new water occupancy value in the voxel data. Because of this,
-            Roblox uses a hack to avoid having to reduce their 6 bits of material ID freedom
-            by writing voxels with a count bit set to 1 and no count. This means we have to write
-            all voxels in the run length manually. */
+            // Shorelines uses a new water occupancy value in the voxel data. Because of this,
+            // Roblox uses a hack to avoid having to reduce their 6 bits of material ID freedom
+            // by writing voxels with a count bit set to 1 and no count. This means we have to write
+            // all voxels in the run length manually.
             let len = to_write.len();
             return to_write
                 .into_iter()
@@ -417,10 +434,7 @@ impl Chunk {
                 for x in 0..CHUNK_SIZE {
                     pos_cursor.0.x = x;
 
-                    let grabbed_voxel = match self.grid.get(&pos_cursor) {
-                        Some(v) => v,
-                        _ => &base_voxel,
-                    };
+                    let grabbed_voxel = self.grid.get(&pos_cursor).unwrap_or(&base_voxel);
 
                     if run_length_cursor == 0 {
                         // We don't add 1 here, next if statement does it.
@@ -450,6 +464,87 @@ impl Chunk {
             data.extend(run_length_voxel.encode_run_length(run_length_cursor));
         }
         data
+    }
+
+    /// Decodes a `Chunk` from a binary blob. The blob must be the same format used
+    /// by `encode` and Roblox.
+    pub fn decode(mut buffer: &[u8]) -> Result<Self, CrateError> {
+        let mut chunk = Chunk::new();
+
+        let mut voxel_count = 0;
+        while voxel_count < CHUNK_SIZE.pow(3) {
+            let mut current_voxel_buffer = [0u8];
+            if let Err(e) = buffer.read_exact(&mut current_voxel_buffer) {
+                return Err(SmoothGridError::from(e).into());
+            }
+
+            let voxel_flag = VoxelFlags::from_bits_truncate(current_voxel_buffer[0]);
+
+            let mut occupancy: Option<f32> = None;
+            let mut count: Option<u8> = None;
+            let mut water_occupancy: Option<f32> = None;
+            let material = TerrainGridMaterial::try_from(current_voxel_buffer[0])?;
+
+            if voxel_flag.contains(VoxelFlags::HAS_OCCUPANCY) {
+                let mut occupancy_buffer = [0u8];
+                if let Err(e) = buffer.read_exact(&mut occupancy_buffer) {
+                    return Err(SmoothGridError::from(e).into());
+                }
+
+                occupancy = Some(occupancy_buffer[0] as f32 / 255.0);
+            }
+            if voxel_flag.contains(VoxelFlags::HAS_COUNT) {
+                let mut count_buffer = [0u8];
+                if let Err(e) = buffer.read_exact(&mut count_buffer) {
+                    return Err(SmoothGridError::from(e).into());
+                }
+
+                if count_buffer[0] == 0 {
+                    let mut water_occupancy_buffer = [0u8];
+                    if let Err(e) = buffer.read_exact(&mut water_occupancy_buffer) {
+                        return Err(SmoothGridError::from(e).into());
+                    }
+
+                    water_occupancy = Some(water_occupancy_buffer[0] as f32 / 255.0)
+                } else {
+                    count = Some(count_buffer[0]);
+                }
+            }
+
+            if let Some(voxel_amount) = count {
+                for _ in 0..voxel_amount {
+                    chunk.write_voxel(
+                        &VoxelCoordinates::new(
+                            voxel_count / (CHUNK_SIZE.pow(2)),
+                            voxel_count / CHUNK_SIZE,
+                            voxel_count % CHUNK_SIZE,
+                        ),
+                        Voxel {
+                            material,
+                            solid_occupancy: occupancy.unwrap_or(0.0),
+                            water_occupancy: 0.0,
+                        },
+                    );
+                    voxel_count += 1;
+                }
+            } else {
+                chunk.write_voxel(
+                    &VoxelCoordinates::new(
+                        voxel_count / (CHUNK_SIZE.pow(2)),
+                        voxel_count / CHUNK_SIZE,
+                        voxel_count % CHUNK_SIZE,
+                    ),
+                    Voxel {
+                        material,
+                        solid_occupancy: occupancy.unwrap_or(0.0),
+                        water_occupancy: water_occupancy.unwrap_or(0.0),
+                    },
+                );
+                voxel_count += 1;
+            }
+        }
+
+        Ok(chunk)
     }
 }
 
@@ -500,69 +595,55 @@ impl SmoothGrid {
 
         let mut chunk_cursor = None;
         for (position, chunk) in &self.world {
-            let cursor = match chunk_cursor {
-                None => position,
-                Some(c) => c,
-            };
+            let cursor = chunk_cursor.unwrap_or(position);
             let axes = [
                 position.0.x - cursor.0.x,
                 position.0.y - cursor.0.y,
                 position.0.z - cursor.0.z,
             ];
 
-            let mut negative_padding = 3;
-            let mut negative_axes = [0x00, 0x00, 0x00];
-            let mut adjusted_axes = [[0x00, 0x00, 0x00], [0x00, 0x00, 0x00], [0x00, 0x00, 0x00]];
-            for (key, axis) in axes.iter().enumerate() {
-                if *axis < 0 {
-                    negative_axes[key] = 0xFF;
-                }
-
-                let axis_filler = match axis.abs() {
-                    ..256 => 3,
-                    256..65536 => 2,
-                    65536.. => 1,
-                };
-                if axis_filler < negative_padding {
-                    negative_padding = axis_filler;
-                }
-
-                // FIXME: This is really ugly
-                let mut axis_adjuster = axis.abs();
-                while axis_adjuster > 0 {
-                    match axis_adjuster {
-                        ..256 => {
-                            adjusted_axes[2][key] = axis_adjuster as u8;
-                            axis_adjuster -= axis_adjuster;
-                        }
-                        256..65536 => {
-                            let offset = axis_adjuster / 256;
-                            adjusted_axes[1][key] += offset as u8;
-                            axis_adjuster -= offset * 256;
-                        }
-                        65536.. => {
-                            let offset = axis_adjuster / 65536;
-                            adjusted_axes[0][key] += offset as u8;
-                            axis_adjuster -= offset * 65536;
-                        }
-                    }
-                }
-            }
-
-            for _ in 0..negative_padding {
-                data.extend(negative_axes.iter())
-            }
-
-            // 3 -> 1, 2 -> 2, 1 -> 3. Amount of 256 multiples to write
-            for i in 0..(4 - negative_padding) {
-                data.extend(adjusted_axes[2 - i].iter());
-            }
+            write_interleaved_i32_array(&mut data, axes.iter().copied()).unwrap();
 
             data.extend(chunk.encode());
             chunk_cursor = Some(position);
         }
 
         data
+    }
+
+    /// Decodes a `SmoothGrid` from a binary blob. The blob must be the same format used
+    /// by `encode` and Roblox.
+    pub fn decode(mut buffer: &[u8]) -> Result<Self, CrateError> {
+        let mut header = [0u8, 0u8];
+        if let Err(e) = buffer.read_exact(&mut header) {
+            return Err(SmoothGridError::from(e).into());
+        }
+
+        let [version, chunk_size] = header;
+        if version != 0x01 || chunk_size != 0x05 {
+            return Err(SmoothGridError::InvalidHeader(version, chunk_size).into());
+        }
+
+        let mut world = Self::new();
+        let mut offset_buffer = [0; 3];
+        let mut cursor_buffer = [0; 3];
+        while read_interleaved_i32_array(&mut buffer, &mut offset_buffer).is_ok() {
+            let true_position_buffer = [
+                cursor_buffer[0] + offset_buffer[0],
+                cursor_buffer[1] + offset_buffer[1],
+                cursor_buffer[2] + offset_buffer[2],
+            ];
+            cursor_buffer.copy_from_slice(&true_position_buffer[..]);
+
+            let true_position = ChunkCoordinates::new(
+                true_position_buffer[0],
+                true_position_buffer[1],
+                true_position_buffer[2],
+            );
+            world.write_chunk(&true_position, Chunk::decode(buffer)?);
+        }
+
+        Ok(world)
     }
 }
 
