@@ -8,3 +8,8 @@ Change:
       DataType:
         Value: "SmoothGrid"
       Scriptability: Custom
+  TerrainRegion:
+    SmoothGrid:
+      DataType:
+        Value: "SmoothGrid"
+      Scriptability: Custom
