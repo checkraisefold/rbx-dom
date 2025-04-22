@@ -1,9 +1,9 @@
 {
   "Version": [
     0,
-    664,
-    0,
-    6640713
+    666,
+    1,
+    6660608
   ],
   "Classes": {
     "Accessory": {
@@ -3843,9 +3843,7 @@
     },
     "AudioChannelMixer": {
       "Name": "AudioChannelMixer",
-      "Tags": [
-        "NotBrowsable"
-      ],
+      "Tags": [],
       "Superclass": "Instance",
       "Properties": {
         "Layout": {
@@ -3894,9 +3892,7 @@
     },
     "AudioChannelSplitter": {
       "Name": "AudioChannelSplitter",
-      "Tags": [
-        "NotBrowsable"
-      ],
+      "Tags": [],
       "Superclass": "Instance",
       "Properties": {
         "Layout": {
@@ -6026,7 +6022,9 @@
     },
     "AudioTextToSpeech": {
       "Name": "AudioTextToSpeech",
-      "Tags": [],
+      "Tags": [
+        "NotBrowsable"
+      ],
       "Superclass": "Instance",
       "Properties": {
         "IsLoaded": {
@@ -6378,34 +6376,6 @@
               "Serialization": "Serializes"
             }
           }
-        },
-        "LocalFrameId": {
-          "Name": "LocalFrameId",
-          "Scriptability": "Read",
-          "DataType": {
-            "Value": "Int32"
-          },
-          "Tags": [
-            "NotReplicated"
-          ],
-          "Kind": {
-            "Canonical": {
-              "Serialization": "DoesNotSerialize"
-            }
-          }
-        },
-        "RemoteFrameId": {
-          "Name": "RemoteFrameId",
-          "Scriptability": "Read",
-          "DataType": {
-            "Value": "Int32"
-          },
-          "Tags": [],
-          "Kind": {
-            "Canonical": {
-              "Serialization": "DoesNotSerialize"
-            }
-          }
         }
       },
       "DefaultProperties": {
@@ -6428,21 +6398,7 @@
         "Service"
       ],
       "Superclass": "Instance",
-      "Properties": {
-        "RollbackEnabled": {
-          "Name": "RollbackEnabled",
-          "Scriptability": "ReadWrite",
-          "DataType": {
-            "Value": "Bool"
-          },
-          "Tags": [],
-          "Kind": {
-            "Canonical": {
-              "Serialization": "Serializes"
-            }
-          }
-        }
-      },
+      "Properties": {},
       "DefaultProperties": {
         "Archivable": {
           "Bool": true
@@ -7725,7 +7681,9 @@
           ],
           "Kind": {
             "Canonical": {
-              "Serialization": "DoesNotSerialize"
+              "Serialization": {
+                "SerializesAs": "MaterialVariantSerialized"
+              }
             }
           }
         },
@@ -7740,8 +7698,8 @@
             "NotScriptable"
           ],
           "Kind": {
-            "Canonical": {
-              "Serialization": "Serializes"
+            "Alias": {
+              "AliasFor": "MaterialVariant"
             }
           }
         },
@@ -15169,6 +15127,70 @@
         }
       }
     },
+    "ConfigService": {
+      "Name": "ConfigService",
+      "Tags": [
+        "NotCreatable",
+        "NotReplicated",
+        "Service"
+      ],
+      "Superclass": "Instance",
+      "Properties": {},
+      "DefaultProperties": {
+        "Archivable": {
+          "Bool": true
+        },
+        "HistoryId": {
+          "UniqueId": "00000000000000000000000000000000"
+        },
+        "UniqueId": {
+          "UniqueId": "00000000000000000000000000000000"
+        }
+      }
+    },
+    "ConfigSnapshot": {
+      "Name": "ConfigSnapshot",
+      "Tags": [
+        "NotCreatable",
+        "NotReplicated"
+      ],
+      "Superclass": "Object",
+      "Properties": {
+        "Error": {
+          "Name": "Error",
+          "Scriptability": "Read",
+          "DataType": {
+            "Enum": "ConfigSnapshotErrorState"
+          },
+          "Tags": [
+            "NotReplicated",
+            "ReadOnly"
+          ],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "DoesNotSerialize"
+            }
+          }
+        },
+        "Outdated": {
+          "Name": "Outdated",
+          "Scriptability": "Read",
+          "DataType": {
+            "Value": "Bool"
+          },
+          "Tags": [
+            "NotReplicated",
+            "ReadOnly"
+          ],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "DoesNotSerialize"
+            }
+          }
+        }
+      },
+      "DefaultProperties": {}
+    },
     "Configuration": {
       "Name": "Configuration",
       "Tags": [],
@@ -16217,7 +16239,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "PivotOffset": {
@@ -23378,7 +23400,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "PivotOffset": {
@@ -25676,6 +25698,19 @@
             }
           }
         },
+        "HoverHapticEffect": {
+          "Name": "HoverHapticEffect",
+          "Scriptability": "ReadWrite",
+          "DataType": {
+            "Value": "Ref"
+          },
+          "Tags": [],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "Serializes"
+            }
+          }
+        },
         "Modal": {
           "Name": "Modal",
           "Scriptability": "ReadWrite",
@@ -25782,6 +25817,19 @@
           "Kind": {
             "Canonical": {
               "Serialization": "DoesNotSerialize"
+            }
+          }
+        },
+        "PressHapticEffect": {
+          "Name": "PressHapticEffect",
+          "Scriptability": "ReadWrite",
+          "DataType": {
+            "Value": "Ref"
+          },
+          "Tags": [],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "Serializes"
             }
           }
         },
@@ -27025,7 +27073,9 @@
     },
     "HapticEffect": {
       "Name": "HapticEffect",
-      "Tags": [],
+      "Tags": [
+        "NotBrowsable"
+      ],
       "Superclass": "Instance",
       "Properties": {
         "Looped": {
@@ -33545,6 +33595,45 @@
             }
           }
         },
+        "PressedThreshold": {
+          "Name": "PressedThreshold",
+          "Scriptability": "ReadWrite",
+          "DataType": {
+            "Value": "Float32"
+          },
+          "Tags": [],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "Serializes"
+            }
+          }
+        },
+        "ReleasedThreshold": {
+          "Name": "ReleasedThreshold",
+          "Scriptability": "ReadWrite",
+          "DataType": {
+            "Value": "Float32"
+          },
+          "Tags": [],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "Serializes"
+            }
+          }
+        },
+        "Scale": {
+          "Name": "Scale",
+          "Scriptability": "ReadWrite",
+          "DataType": {
+            "Value": "Float32"
+          },
+          "Tags": [],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "Serializes"
+            }
+          }
+        },
         "UIButton": {
           "Name": "UIButton",
           "Scriptability": "ReadWrite",
@@ -33575,8 +33664,17 @@
         "KeyCode": {
           "Enum": 0
         },
+        "PressedThreshold": {
+          "Float32": 0.5
+        },
+        "ReleasedThreshold": {
+          "Float32": 0.2
+        },
         "Sandboxed": {
           "Bool": false
+        },
+        "Scale": {
+          "Float32": 1.0
         },
         "SourceAssetId": {
           "Int64": -1
@@ -34605,7 +34703,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "MeshData": {
@@ -39355,7 +39453,7 @@
             "Canonical": {
               "Serialization": {
                 "Migrate": {
-                  "To": "MeshContent",
+                  "To": "TextureContent",
                   "Migration": "ContentIdToContent"
                 }
               }
@@ -39541,7 +39639,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "MeshContent": {
@@ -39622,6 +39720,9 @@
         },
         "Tags": {
           "Tags": []
+        },
+        "TextureContent": {
+          "Content": "None"
         },
         "TopParamA": {
           "Float32": -0.5
@@ -41262,7 +41363,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "MeshData": {
@@ -43074,7 +43175,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "PivotOffset": {
@@ -43624,7 +43725,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "MeshData": {
@@ -54070,6 +54171,22 @@
             }
           }
         },
+        "ScrollRate": {
+          "Name": "ScrollRate",
+          "Scriptability": "None",
+          "DataType": {
+            "Value": "Float32"
+          },
+          "Tags": [
+            "Hidden",
+            "NotReplicated"
+          ],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "DoesNotSerialize"
+            }
+          }
+        },
         "ScrollVelocity": {
           "Name": "ScrollVelocity",
           "Scriptability": "None",
@@ -54109,6 +54226,22 @@
           "Kind": {
             "Canonical": {
               "Serialization": "Serializes"
+            }
+          }
+        },
+        "SmoothScroll": {
+          "Name": "SmoothScroll",
+          "Scriptability": "None",
+          "DataType": {
+            "Value": "Bool"
+          },
+          "Tags": [
+            "Hidden",
+            "NotReplicated"
+          ],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "DoesNotSerialize"
             }
           }
         },
@@ -54538,7 +54671,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "PivotOffset": {
@@ -55904,7 +56037,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "PivotOffset": {
@@ -58087,7 +58220,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "Neutral": {
@@ -65914,7 +66047,7 @@
             ]
           }
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "PhysicsGrid": {
@@ -71343,7 +71476,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "PivotOffset": {
@@ -73826,7 +73959,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "MeshData": {
@@ -76495,7 +76628,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "MaxSpeed": {
@@ -78582,6 +78715,64 @@
         }
       }
     },
+    "WebSocketClient": {
+      "Name": "WebSocketClient",
+      "Tags": [
+        "NotCreatable",
+        "NotReplicated"
+      ],
+      "Superclass": "Instance",
+      "Properties": {
+        "ConnectionState": {
+          "Name": "ConnectionState",
+          "Scriptability": "Read",
+          "DataType": {
+            "Enum": "WebSocketState"
+          },
+          "Tags": [
+            "NotReplicated",
+            "ReadOnly"
+          ],
+          "Kind": {
+            "Canonical": {
+              "Serialization": "DoesNotSerialize"
+            }
+          }
+        }
+      },
+      "DefaultProperties": {
+        "Archivable": {
+          "Bool": true
+        },
+        "HistoryId": {
+          "UniqueId": "00000000000000000000000000000000"
+        },
+        "UniqueId": {
+          "UniqueId": "00000000000000000000000000000000"
+        }
+      }
+    },
+    "WebSocketService": {
+      "Name": "WebSocketService",
+      "Tags": [
+        "NotCreatable",
+        "NotReplicated",
+        "Service"
+      ],
+      "Superclass": "Instance",
+      "Properties": {},
+      "DefaultProperties": {
+        "Archivable": {
+          "Bool": true
+        },
+        "HistoryId": {
+          "UniqueId": "00000000000000000000000000000000"
+        },
+        "UniqueId": {
+          "UniqueId": "00000000000000000000000000000000"
+        }
+      }
+    },
     "WebViewService": {
       "Name": "WebViewService",
       "Tags": [
@@ -78744,7 +78935,7 @@
         "Material": {
           "Enum": 256
         },
-        "MaterialVariantSerialized": {
+        "MaterialVariant": {
           "String": ""
         },
         "PivotOffset": {
@@ -81131,6 +81322,7 @@
       "name": "AlphaMode",
       "items": {
         "Overlay": 0,
+        "TintMask": 2,
         "Transparency": 1
       }
     },
@@ -81761,14 +81953,6 @@
         "Watch": 2
       }
     },
-    "CaptureUIHideMode": {
-      "name": "CaptureUIHideMode",
-      "items": {
-        "All": 0,
-        "Core": 2,
-        "None": 1
-      }
-    },
     "CatalogCategoryFilter": {
       "name": "CatalogCategoryFilter",
       "items": {
@@ -82050,6 +82234,13 @@
         "ClickToMove": 2,
         "Default": 0,
         "KeyboardMouse": 1
+      }
+    },
+    "ConfigSnapshotErrorState": {
+      "name": "ConfigSnapshotErrorState",
+      "items": {
+        "LoadFailed": 1,
+        "None": 0
       }
     },
     "ConnectionError": {
@@ -84163,7 +84354,8 @@
       "items": {
         "FlushFailed": 1,
         "LoadFailed": 0,
-        "None": 2
+        "None": 3,
+        "ReleaseFailed": 2
       }
     },
     "PlayerDataLoadFailureBehavior": {
@@ -84868,6 +85060,19 @@
         "BottomRight": 3,
         "TopLeft": 0,
         "TopRight": 1
+      }
+    },
+    "StateObjectFieldType": {
+      "name": "StateObjectFieldType",
+      "items": {
+        "Boolean": 0,
+        "CFrame": 1,
+        "Float": 2,
+        "INVALID": 7,
+        "Instance": 3,
+        "Random": 4,
+        "Vector2": 5,
+        "Vector3": 6
       }
     },
     "Status": {
@@ -85581,6 +85786,14 @@
         "Completed": 1
       }
     },
+    "UICaptureMode": {
+      "name": "UICaptureMode",
+      "items": {
+        "All": 0,
+        "None": 1,
+        "PlayerGui": 2
+      }
+    },
     "UIDragDetectorBoundingBehavior": {
       "name": "UIDragDetectorBoundingBehavior",
       "items": {
@@ -85929,6 +86142,15 @@
         "None": 0,
         "Small": 1,
         "Strong": 3
+      }
+    },
+    "WebSocketState": {
+      "name": "WebSocketState",
+      "items": {
+        "Closed": 3,
+        "Closing": 2,
+        "Connecting": 0,
+        "Open": 1
       }
     },
     "WeldConstraintPreserve": {
