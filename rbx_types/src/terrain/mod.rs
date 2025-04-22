@@ -1,6 +1,6 @@
 // Terrain has two binary formats, being the material colors and smooth grid blobs.
-// The smooth grid spec can be found here: https://github.com/rojo-rbx/rbx-dom/blob/terrain/docs/smooth-grid.md
-// The material colors spec can be found here: https://github.com/rojo-rbx/rbx-dom/blob/master/docs/binary-strings.md#materialcolors
+// The smooth grid spec can be found at docs/smooth-grid.md from the root directory of this project.
+// The material colors spec can be found at docs/binary-strings.md from the root directory of this project.
 
 mod material_colors;
 mod smooth_grid;

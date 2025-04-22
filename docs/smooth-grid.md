@@ -50,17 +50,17 @@ When interleaved, the same array would instead look like this:
 
 ## File Structure
 
-The first two bytes of the blob are `0x01`, which is a magic number, followed by `0x05`, which is a logarithm base 2 of the chunk size in voxels. The default chunk size is 32<sup>3</sup> (32768). The amount of voxels in a chunk can be described as <code>(2<sup>Chunk Size</sup>)<sup>3</sup></code>.
+The first two bytes of the blob are `0x01`, which is a version number, followed by `0x05`, which is a logarithm base 2 of the chunk size in voxels. The default chunk size is 32<sup>3</sup> (32768). The amount of voxels in a chunk can be described as <code>(2<sup>Chunk Size</sup>)<sup>3</sup></code>.
 
 Size values other than `0x05` are never written by Studio, but values between `0x00` (inclusive) and `0x08` (inclusive) can still be deserialized by the engine, giving a theoretical range of possible chunk sizes between 1<sup>3</sup> and 256<sup>3</sup>. However, the engine splits chunks differing in size from 32<sup>3</sup> back into the default chunk size. Any size value other than `0x05` has poorly tested and undefined behavior.
 
 Immediately following the header is an array of chunks, each of which must contain enough voxels to reach the maximum count, which is equivalent to the chunk size. Chunks are ascendingly ordered by X, then Y, then Z based on their position in the world. Each chunk represents a cube of 128<sup>3</sup> units in world space.
 
-| Field Name   | Format                 | Value                                                                                |
-| :----------- | :--------------------- | :----------------------------------------------------------------------------------- |
-| Magic Number | `u8`                   | The magic number `0x01`                                                              |
-| Chunk Size   | `u8`                   | Logarithm base 2 of the chunk size. Should be `0x05`.                                |
-| Chunks       | [Vec\<Chunk\>](#chunk) | Dynamic number of chunks. Runs until the end of the blob. Unknown/no maximum amount. |
+| Field Name     | Format                 | Value                                                                                |
+| :------------- | :--------------------- | :----------------------------------------------------------------------------------- |
+| Version Number | `u8`                   | The binary format version used. Currently, only `0x01` is supported by the engine.   |
+| Chunk Size     | `u8`                   | Logarithm base 2 of the chunk size. Should be `0x05`.                                |
+| Chunks         | [Vec\<Chunk\>](#chunk) | Dynamic number of chunks. Runs until the end of the blob. Unknown/no maximum amount. |
 
 ## Data Types
 
@@ -70,7 +70,7 @@ Terrain data is represented using a variety of different data types. Data descri
 
 The `Chunk` type is stored with a dynamic size dependent on the size of the voxels contained within, and the end of its data is marked by reaching its maximum voxel count dependent on chunk size. Voxels are ascendingly ordered by Y, then Z, then X based on their position in the chunk. Voxels are stored in rows of 32 units on each axis, each representing 4 units in world space.
 
-Voxel data is preceded by the offset between this chunk and the last in the blob, or from `0, 0, 0` if this is the first chunk in the blob. This offset is stored using 3 `i32`s (in XYZ order) stored in an [interleaved]((#byte-interleaving)) format.
+Voxel data is preceded by the offset between this chunk and the last in the blob, or from `0, 0, 0` if this is the first chunk in the blob. This offset is stored using 3 `i32`s (in XYZ order) stored in an [interleaved](#byte-interleaving) format.
 
 Chunks have a maximum world position in chunk space of 262,144 on each axis. After this point, voxels are located in a region (above 2<sup>23</sup> in world space) where floating point precision devolves to `1.0`, and the engine refuses to load a blob that contains chunks beyond this point.
 

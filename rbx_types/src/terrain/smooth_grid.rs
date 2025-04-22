@@ -12,8 +12,15 @@ use crate::Error as CrateError;
 
 use super::{read_interleaved_i32_array, write_interleaved_i32_array, TerrainMaterials};
 
+/// Expected binary version, written to the blob.
+const BINARY_VERSION: u8 = 1;
+
+/// Expected binary chunk size (power of 2). If the chunk size is different,
+/// Roblox will convert it. The behavior of this conversion is unknown.
+const BINARY_CHUNK_SIZE: u8 = 5;
+
 /// Size of a chunk. Chunks are cubes, so this is the length/width/height.
-const CHUNK_SIZE: i32 = 2i32.pow(5);
+const CHUNK_SIZE: i32 = 2i32.pow(BINARY_CHUNK_SIZE as u32);
 
 /// Coordinates of a chunk or a voxel. For internal use.
 // Can't use Vector3int16; we need a 32 bit integer.
@@ -206,7 +213,7 @@ pub(crate) enum SmoothGridError {
     #[error("cannot convert `{0}` into TerrainGridMaterial")]
     UnknownMaterial(u8),
 
-    #[error("expected file header with version 1 and size 5, received version {0} and size {1}")]
+    #[error("expected file header with version {BINARY_VERSION} and size {BINARY_CHUNK_SIZE}, received version {0} and size {1}")]
     InvalidHeader(u8, u8),
 
     #[error(transparent)]
@@ -425,7 +432,7 @@ impl Chunk {
         };
 
         let mut pos_cursor = VoxelCoordinates::default();
-        let mut run_length_cursor = 0u16;
+        let mut run_length_cursor: u16 = 0;
         let mut run_length_voxel = &base_voxel;
         for y in 0..CHUNK_SIZE {
             pos_cursor.0.y = y;
@@ -620,7 +627,7 @@ impl SmoothGrid {
         }
 
         let [version, chunk_size] = header;
-        if version != 0x01 || chunk_size != 0x05 {
+        if version != BINARY_VERSION || chunk_size != BINARY_CHUNK_SIZE {
             return Err(SmoothGridError::InvalidHeader(version, chunk_size).into());
         }
 
